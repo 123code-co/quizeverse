@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Activity, ArrowRight, BrainCircuit, Layers3, Rocket, Trophy, Users } from "lucide-react";
+import { QuizArena } from "@/components/quiz/quiz-arena";
 
 const featureCards = [
   {
@@ -96,6 +97,11 @@ export default function DashboardPage() {
           <p className="mt-1 text-sm text-slate-400">Climb the rankings with faster answers and better accuracy.</p>
         </div>
       </section>
+
+      <QuizArena
+        title="Dashboard Instant Play"
+        subtitle="Users can now log in and start playing quiz modes directly from the dashboard without leaving the page."
+      />
     </div>
   );
 }
