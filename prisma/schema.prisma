@@ -1,0 +1,198 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+enum Category {
+  MATHEMATICS
+  SCIENCE
+  LOGIC
+  PROGRAMMING
+  GENERAL_KNOWLEDGE
+  HISTORY
+  PUZZLE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  FILL_IN_BLANK
+}
+
+enum RoomStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  hashedPassword String
+  avatar         String?
+  role           Role      @default(PLAYER)
+  quizzes        Quiz[]    @relation("QuizCreator")
+  quizAttempts   QuizAttempt[]
+  leaderboard    LeaderboardEntry[]
+  multiplayerRooms MultiplayerRoom[] @relation("RoomHost")
+  roomPlayers    RoomPlayer[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Quiz {
+  id           String    @id @default(uuid())
+  title        String
+  description  String
+  category     Category
+  difficulty   Difficulty
+  timeLimit    Int?
+  isPublished  Boolean   @default(false)
+  tags         String[]
+  coverImage   String?
+  creator      User      @relation("QuizCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId    String
+  questions    Question[]
+  attempts     QuizAttempt[]
+  leaderboard  LeaderboardEntry[]
+  multiplayerRooms MultiplayerRoom[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([isPublished])
+  @@index([creatorId])
+}
+
+model Question {
+  id              String        @id @default(uuid())
+  type            QuestionType
+  text            String
+  explanation     String?
+  points          Int           @default(10)
+  timeLimitSec    Int?
+  order           Int
+  imageUrl        String?
+  correctBoolean  Boolean?
+  correctAnswers  String[]
+  quiz            Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId          String
+  options         Option[]
+  responses       QuestionResponse[]
+
+  @@index([quizId])
+  @@index([type])
+}
+
+model Option {
+  id         String   @id @default(uuid())
+  text       String
+  isCorrect  Boolean
+  order      Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+  selectedBy QuestionResponse[] @relation("OptionToQuestionResponse")
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  quiz         Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId       String
+  score        Int
+  totalPoints  Int
+  percentage   Float
+  startedAt    DateTime
+  completedAt  DateTime?
+  timeTakenSec Int
+  responses    QuestionResponse[]
+
+  @@index([userId])
+  @@index([quizId])
+}
+
+model QuestionResponse {
+  id              String    @id @default(uuid())
+  attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attemptId       String
+  question        Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId      String
+  selectedOption  Option?    @relation("OptionToQuestionResponse", fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  selectedOptionId String?
+  textAnswer      String?
+  isCorrect       Boolean
+  timeTakenSec    Int
+  pointsEarned    Int
+
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+model LeaderboardEntry {
+  id           String   @id @default(uuid())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  quiz         Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId       String
+  score        Int
+  timeTakenSec Int
+  rank         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, quizId])
+  @@index([quizId])
+  @@index([score])
+}
+
+model MultiplayerRoom {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  quiz         Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId       String
+  host         User     @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  hostId       String
+  status       RoomStatus
+  maxPlayers   Int
+  players      RoomPlayer[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([quizId])
+  @@index([hostId])
+  @@index([status])
+}
+
+model RoomPlayer {
+  id         String           @id @default(uuid())
+  room       MultiplayerRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  score      Int
+  finishedAt DateTime?
+
+  @@index([roomId])
+  @@index([userId])
+}

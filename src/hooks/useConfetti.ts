@@ -1,0 +1,1 @@
+// Confetti trigger hook placeholder

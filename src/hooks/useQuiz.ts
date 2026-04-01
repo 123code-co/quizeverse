@@ -1,0 +1,1 @@
+// Quiz state management hook placeholder
